@@ -9,7 +9,8 @@ driver = webdriver.Firefox()
 driver.get('https://twitter.com')
 
 # https://twitter.com/{{user}}/likes
-LIMIT = 1000
+# TODO Configurar otro tipo de límites (por ejemplo antigüedad)
+LIMIT = 3000
 
 def login_twitter(username, password):
 
