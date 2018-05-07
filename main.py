@@ -9,6 +9,8 @@ driver = webdriver.Firefox()
 driver.get('https://twitter.com')
 
 # https://twitter.com/{{user}}/likes
+LIMIT = 1000
+
 def login_twitter(username, password):
 
     driver.get("https://twitter.com/login")
@@ -30,12 +32,60 @@ if __name__ == "__main__":
     password = getpass("password  : ")
 
 login_twitter(username, password)
-driver.get('https://twitter.com/eldiario/likes')
+
+username = input("Victim: ")
+driver.get('https://twitter.com/' + username + '/likes')
 html = driver.find_element_by_tag_name('html')
+# html.text
 
-for _ in range(10):
-    body = browser.find_element_by_tag_name('body')
-    time.sleep(2)
+body = driver.find_element_by_tag_name('body')
+tl = []
 
-body.send_keys(Keys.PAGE_DOWN)
-print(html)
+def exists_css_element(element, parent):
+    try:
+        parent.find_element_by_css_selector(element)
+        return True
+    except:
+        return False
+
+tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
+last_len = len(tl)
+last_len_eq = 0
+while exists_css_element('.timeline-end.has-more-items', body) or last_len >= LIMIT:
+# while len(body.find_elements_by_css_selector('#timeline .stream ol > li')) > len(tl):
+    driver.execute_script(
+        'arguments[0].scrollIntoView();', body.find_element_by_class_name('stream-footer'))
+    # body.send_keys(Keys.PAGE_DOWN)
+    time.sleep(1)
+    tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
+    if len(tl) <= last_len:
+        last_len_eq += 1
+    else:
+        last_len = len(tl)
+        last_len_eq = 0
+
+    if last_len_eq >= 3:
+        break
+
+found = {}
+for t in tl:
+    try:
+        name = t.find_element_by_css_selector(
+            '.content .stream-item-header .FullNameGroup .fullname').text
+        user_name = t.find_element_by_css_selector(
+            '.content .stream-item-header .username b').text
+        # Con algunos elementos HTML dentro
+        twit = t.find_element_by_css_selector(
+            '.content .js-tweet-text-container').text
+        verified = exists_css_element('.Icon.Icon--verified', t)
+
+        if user_name in found:
+            found[user_name]['count'] += 1
+        else:
+            found[user_name] = {'count': 1, 'verified': verified}
+
+    except:
+        pass
+
+for x in found:
+    print("@%s -%s-> %d likes" % (x, '(v)' if found[x]['verified'] else '', found[x]['count']))
