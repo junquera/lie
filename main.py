@@ -49,7 +49,7 @@ def exists_css_element(element, parent):
     except:
         return False
 
-tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
+tl = body.find_elements_by_css_selector('#timeline .stream > ol > li')
 last_len = len(tl)
 last_len_eq = 0
 while exists_css_element('.timeline-end.has-more-items', body) or last_len >= LIMIT:
