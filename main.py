@@ -68,17 +68,23 @@ def delete_element(element):
 # TODO Controlar "inianición"
 # Times scrolled
 c = 0
+
 while exists_css_element('.timeline-end.has-more-items', body):
     driver.execute_script(
         'arguments[0].scrollIntoView();', body.find_element_by_class_name('stream-footer'))
     # body.send_keys(Keys.PAGE_DOWN)
     time.sleep(1)
 
+
+    for _ in range(2):
+        body.send_keys(Keys.UP)
+
     c += 1
     if c % 5 == 0:
         tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
 
         for t in tl:
+
             try:
                 name = t.find_element_by_css_selector(
                     '.content .stream-item-header .FullNameGroup .fullname').text
@@ -99,8 +105,31 @@ while exists_css_element('.timeline-end.has-more-items', body):
             except:
                 pass
 
-        for _ in range(5):
+        for _ in range(2):
             body.send_keys(Keys.UP)
+
+tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
+for t in tl:
+
+    try:
+        name = t.find_element_by_css_selector(
+            '.content .stream-item-header .FullNameGroup .fullname').text
+        user_name = t.find_element_by_css_selector(
+            '.content .stream-item-header .username b').text
+        # Con algunos elementos HTML dentro
+        twit = t.find_element_by_css_selector(
+            '.content .js-tweet-text-container').text
+        verified = exists_css_element('.Icon.Icon--verified', t)
+
+        if user_name in found:
+            found[user_name]['count'] += 1
+        else:
+            found[user_name] = {'count': 1, 'verified': verified}
+        print("%s,%s" % (user_name, verified))
+
+        delete_element(t)
+    except:
+        pass
 
 print("account,verified,likes")
 with open('%s.csv' % username, 'w+') as f:
