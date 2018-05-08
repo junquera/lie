@@ -12,6 +12,9 @@ driver.get('https://twitter.com')
 # TODO Configurar otro tipo de límites (por ejemplo antigüedad)
 LIMIT = 3000
 
+def scroll_to(element):
+    driver.execute_script("return arguments[0].scrollIntoView(true);", element)
+
 def login_twitter(username, password):
 
     driver.get("https://twitter.com/login")
@@ -37,7 +40,7 @@ login_twitter(username, password)
 username = input("Victim: ")
 driver.get('https://twitter.com/' + username + '/likes')
 html = driver.find_element_by_tag_name('html')
-# html.text
+# TODO Probar bs4 con html.text
 
 body = driver.find_element_by_tag_name('body')
 tl = []
@@ -53,42 +56,51 @@ tl = body.find_elements_by_css_selector('#timeline .stream > ol > li')
 last_len = len(tl)
 last_len_eq = 0
 
-while exists_css_element('.timeline-end.has-more-items', body) or last_len >= LIMIT:
-# while len(body.find_elements_by_css_selector('#timeline .stream ol > li')) > len(tl):
+found = {}
+
+
+def delete_element(element):
+    driver.execute_script("""
+    var element = arguments[0];
+    element.parentNode.removeChild(element);
+    """, element)
+
+# TODO Controlar "inianición"
+# Times scrolled
+c = 0
+while exists_css_element('.timeline-end.has-more-items', body):
     driver.execute_script(
         'arguments[0].scrollIntoView();', body.find_element_by_class_name('stream-footer'))
     # body.send_keys(Keys.PAGE_DOWN)
     time.sleep(1)
-    tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
-    if len(tl) <= last_len:
-        last_len_eq += 1
-    else:
-        last_len = len(tl)
-        last_len_eq = 0
 
-    if last_len_eq >= 3:
-        break
+    c += 1
+    if c % 5 == 0:
+        tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
 
-# TODO Borrar renderizado y ya leido para ir más rápido y no sobrecargar
-found = {}
-for t in tl:
-    try:
-        name = t.find_element_by_css_selector(
-            '.content .stream-item-header .FullNameGroup .fullname').text
-        user_name = t.find_element_by_css_selector(
-            '.content .stream-item-header .username b').text
-        # Con algunos elementos HTML dentro
-        twit = t.find_element_by_css_selector(
-            '.content .js-tweet-text-container').text
-        verified = exists_css_element('.Icon.Icon--verified', t)
+        for t in tl:
+            try:
+                name = t.find_element_by_css_selector(
+                    '.content .stream-item-header .FullNameGroup .fullname').text
+                user_name = t.find_element_by_css_selector(
+                    '.content .stream-item-header .username b').text
+                # Con algunos elementos HTML dentro
+                twit = t.find_element_by_css_selector(
+                    '.content .js-tweet-text-container').text
+                verified = exists_css_element('.Icon.Icon--verified', t)
 
-        if user_name in found:
-            found[user_name]['count'] += 1
-        else:
-            found[user_name] = {'count': 1, 'verified': verified}
+                if user_name in found:
+                    found[user_name]['count'] += 1
+                else:
+                    found[user_name] = {'count': 1, 'verified': verified}
+                print("%s,%s" % (user_name, verified))
 
-    except:
-        pass
+                delete_element(t)
+            except:
+                pass
+
+        for _ in range(5):
+            body.send_keys(Keys.UP)
 
 print("account,verified,likes")
 with open('%s.csv' % username, 'w+') as f:
