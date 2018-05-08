@@ -9,6 +9,7 @@ driver = webdriver.Firefox()
 driver.get('https://twitter.com')
 
 # https://twitter.com/{{user}}/likes
+# TODO Contabilizar e ir sacando porcentajes
 # TODO Configurar otro tipo de límites (por ejemplo antigüedad)
 LIMIT = 3000
 
@@ -68,21 +69,21 @@ def delete_element(element):
 # TODO Controlar "inianición"
 # Times scrolled
 c = 0
-
-while exists_css_element('.timeline-end.has-more-items', body):
+total = 0
+while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT:
     driver.execute_script(
         'arguments[0].scrollIntoView();', body.find_element_by_class_name('stream-footer'))
     # body.send_keys(Keys.PAGE_DOWN)
     time.sleep(1)
 
 
-    for _ in range(2):
+    for _ in range(3):
         body.send_keys(Keys.UP)
 
     c += 1
     if c % 5 == 0:
         tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
-
+        # TODO Medir tiempos y ver cuándo es mejor lanzar delete_element
         for t in tl:
 
             try:
@@ -105,7 +106,10 @@ while exists_css_element('.timeline-end.has-more-items', body):
             except:
                 pass
 
-        for _ in range(2):
+            total += len(tl)
+            print("[*] Total: %d" % total)
+
+        for _ in range(3):
             body.send_keys(Keys.UP)
 
 tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
