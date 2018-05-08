@@ -84,6 +84,9 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
     if c % 5 == 0:
         tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
         # TODO Medir tiempos y ver cuándo es mejor lanzar delete_element
+        total += len(tl)
+        print("[*] Total: %d" % total)
+
         for t in tl:
 
             try:
@@ -103,11 +106,9 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
                 print("%s,%s" % (user_name, verified))
 
                 delete_element(t)
-            except:
+            except Exception as e:
                 pass
 
-            total += len(tl)
-            print("[*] Total: %d" % total)
 
         for _ in range(3):
             body.send_keys(Keys.UP)
