@@ -52,6 +52,7 @@ def exists_css_element(element, parent):
 tl = body.find_elements_by_css_selector('#timeline .stream > ol > li')
 last_len = len(tl)
 last_len_eq = 0
+
 while exists_css_element('.timeline-end.has-more-items', body) or last_len >= LIMIT:
 # while len(body.find_elements_by_css_selector('#timeline .stream ol > li')) > len(tl):
     driver.execute_script(
@@ -68,6 +69,7 @@ while exists_css_element('.timeline-end.has-more-items', body) or last_len >= LI
     if last_len_eq >= 3:
         break
 
+# TODO Borrar renderizado y ya leido para ir más rápido y no sobrecargar
 found = {}
 for t in tl:
     try:
@@ -88,5 +90,10 @@ for t in tl:
     except:
         pass
 
-for x in found:
-    print("@%s -%s-> %d likes" % (x, '(v)' if found[x]['verified'] else '', found[x]['count']))
+print("account,verified,likes")
+with open('%s.csv' % username, 'w+') as f:
+    for x in found:
+        s = "%s,%s,%d" % (x, '(v)' if found[x]['verified'] else '', found[x]['count'])
+        print(s)
+        f.write("%s\n" % s)
+        f.flush()
