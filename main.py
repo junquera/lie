@@ -5,13 +5,29 @@ from getpass import getpass
 
 import time
 
-driver = webdriver.Firefox()
+driver = webdriver.Chrome()
 driver.get('https://twitter.com')
 
 # https://twitter.com/{{user}}/likes
 # TODO Contabilizar e ir sacando porcentajes
 # TODO Configurar otro tipo de límites (por ejemplo antigüedad)
 LIMIT = 3000
+
+def add_css_rule(rule):
+
+    driver.execute_script('''
+    function addCss(cssString) {
+    	var head = document.getElementsByTagName('head')[0];
+      // return unless head;
+      var newCss = document.createElement('style');
+      newCss.type = "text/css";
+      newCss.innerHTML = cssString;
+      head.appendChild(newCss);
+      console.log("Using ", newCss);
+    }
+
+    addCss('%s');
+    ''' % rule)
 
 def scroll_to(element):
     driver.execute_script("return arguments[0].scrollIntoView(true);", element)
@@ -31,14 +47,19 @@ def login_twitter(username, password):
 
     driver.find_element_by_class_name("EdgeButtom--medium").click()
 
+#
+# if __name__ == "__main__":
+#     username = input("user name : ")
+#     password = getpass("password  : ")
 
-if __name__ == "__main__":
-    username = input("user name : ")
-    password = getpass("password  : ")
-
+username = 'leo.calero@protonmail.com'
+password = 'L30.C4l3r0'
 login_twitter(username, password)
 
-username = input("Victim: ")
+# username = input("Victim: ")
+
+username = 'el_pais'
+
 driver.get('https://twitter.com/' + username + '/likes')
 html = driver.find_element_by_tag_name('html')
 # TODO Probar bs4 con html.text
@@ -61,15 +82,25 @@ found = {}
 
 
 def delete_element(element):
+    t0 = time.time()
     driver.execute_script("""
     var element = arguments[0];
     element.parentNode.removeChild(element);
     """, element)
+    # print("Deleted in %sseconds" % (time.time() - t0))
+
+import re
 
 # TODO Controlar "inianición"
 # Times scrolled
 c = 0
 total = 0
+# TODO Add signal to stop
+
+add_css_rule("#timeline .stream ol > li { display: none; }")
+
+all_likes = body.find_element_by_css_selector('.ProfileNav-list > li.ProfileNav-item.ProfileNav-item--favorites').text
+all_likes = int(re.sub(r'[^0-9]', '', all_likes))
 while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT:
     driver.execute_script(
         'arguments[0].scrollIntoView();', body.find_element_by_class_name('stream-footer'))
@@ -77,43 +108,65 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
     time.sleep(1)
 
 
-    for _ in range(3):
+    for _ in range(50):
         body.send_keys(Keys.UP)
+    time.sleep(1)
 
+    ('#timeline .stream ol > li')
     c += 1
     if c % 5 == 0:
         tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
         # TODO Medir tiempos y ver cuándo es mejor lanzar delete_element
         total += len(tl)
-        print("[*] Total: %d" % total)
+        print("[*] Progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
 
+        t0 = time.time()
         for t in tl:
+            # print("Time with the element: %ss" % (time.time() - t0))
 
             try:
-                name = t.find_element_by_css_selector(
-                    '.content .stream-item-header .FullNameGroup .fullname').text
-                user_name = t.find_element_by_css_selector(
-                    '.content .stream-item-header .username b').text
+                t0 = time.time()
+                # En principio esta es la parte más lenta
+                tc = t.find_element_by_css_selector('.content')
+                # print("Time finding element content: %ss" % (time.time() - t0))
+
+                t0 = time.time()
+                name = tc.find_element_by_css_selector(
+                    '.stream-item-header .FullNameGroup .fullname').text
+                # print("Time finding name: %ss" % (time.time() - t0))
+                t0 = time.time()
+                user_name = tc.find_element_by_css_selector(
+                    '.stream-item-header .username b').text
+                # print("Time finding user_name: %ss" % (time.time() - t0))
+                t0 = time.time()
                 # Con algunos elementos HTML dentro
-                twit = t.find_element_by_css_selector(
-                    '.content .js-tweet-text-container').text
-                verified = exists_css_element('.Icon.Icon--verified', t)
+                twit = tc.find_element_by_css_selector(
+                    '.js-tweet-text-container').text
+                # print("Time finding twit: %ss" % (time.time() - t0))
+                t0 = time.time()
+                verified = exists_css_element('.Icon.Icon--verified', tc)
+                # print("Time finding verified: %ss" % (time.time() - t0))
 
                 if user_name in found:
                     found[user_name]['count'] += 1
                 else:
                     found[user_name] = {'count': 1, 'verified': verified}
-                print("%s,%s" % (user_name, verified))
+                # print("%s,%s" % (user_name, verified))
 
                 delete_element(t)
             except Exception as e:
+                # print(e)
                 pass
 
+            t0 = time.time()
 
-        for _ in range(3):
+
+        for _ in range(50):
             body.send_keys(Keys.UP)
 
-tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
+        time.sleep(1)
+
+tl = [e for e in body.find_elements_by_css_selector('#timeline .stream ol > li')]
 for t in tl:
 
     try:
@@ -130,7 +183,7 @@ for t in tl:
             found[user_name]['count'] += 1
         else:
             found[user_name] = {'count': 1, 'verified': verified}
-        print("%s,%s" % (user_name, verified))
+        # print("%s,%s" % (user_name, verified))
 
         delete_element(t)
     except:
