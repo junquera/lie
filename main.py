@@ -6,7 +6,11 @@ from getpass import getpass
 import time
 
 driver = webdriver.Chrome()
+driver.maximize_window()
 driver.get('https://twitter.com')
+
+import logging
+logging.basicConfig(format='[*] %(asctime)s - %(message)s', datefmt='%m/%d/%Y %I:%M:%S %p')
 
 # https://twitter.com/{{user}}/likes
 # TODO Contabilizar e ir sacando porcentajes
@@ -105,79 +109,54 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
     driver.execute_script(
         'arguments[0].scrollIntoView();', body.find_element_by_class_name('stream-footer'))
     # body.send_keys(Keys.PAGE_DOWN)
-    time.sleep(1)
-
+    # time.sleep(1)
 
     for _ in range(50):
         body.send_keys(Keys.UP)
-    time.sleep(1)
+    # time.sleep(1)
 
-    ('#timeline .stream ol > li')
     c += 1
     if c % 5 == 0:
+        # time.sleep(1)
+
         tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
         # TODO Medir tiempos y ver cuándo es mejor lanzar delete_element
-        total += len(tl)
-        print("[*] Progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
 
-        t0 = time.time()
-        for t in tl:
-            # print("Time with the element: %ss" % (time.time() - t0))
-
-            try:
-                t0 = time.time()
-                # En principio esta es la parte más lenta
-                tc = t.find_element_by_css_selector('.content')
-                # print("Time finding element content: %ss" % (time.time() - t0))
-
-                t0 = time.time()
-                name = tc.find_element_by_css_selector(
-                    '.stream-item-header .FullNameGroup .fullname').text
-                # print("Time finding name: %ss" % (time.time() - t0))
-                t0 = time.time()
-                user_name = tc.find_element_by_css_selector(
-                    '.stream-item-header .username b').text
-                # print("Time finding user_name: %ss" % (time.time() - t0))
-                t0 = time.time()
-                # Con algunos elementos HTML dentro
-                twit = tc.find_element_by_css_selector(
-                    '.js-tweet-text-container').text
-                # print("Time finding twit: %ss" % (time.time() - t0))
-                t0 = time.time()
-                verified = exists_css_element('.Icon.Icon--verified', tc)
-                # print("Time finding verified: %ss" % (time.time() - t0))
-
-                if user_name in found:
-                    found[user_name]['count'] += 1
-                else:
-                    found[user_name] = {'count': 1, 'verified': verified}
-                # print("%s,%s" % (user_name, verified))
-
-                delete_element(t)
-            except Exception as e:
-                # print(e)
-                pass
-
-            t0 = time.time()
+        total = len(tl)
+        logging.warning("Progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
 
 
         for _ in range(50):
             body.send_keys(Keys.UP)
 
-        time.sleep(1)
+        # time.sleep(1)
 
-tl = [e for e in body.find_elements_by_css_selector('#timeline .stream ol > li')]
-for t in tl:
+
+def analyze_twit(t):
+    # print("Time with the element: %ss" % (time.time() - t0))
 
     try:
-        name = t.find_element_by_css_selector(
-            '.content .stream-item-header .FullNameGroup .fullname').text
-        user_name = t.find_element_by_css_selector(
-            '.content .stream-item-header .username b').text
+        t0 = time.time()
+        # En principio esta es la parte más lenta
+        tc = t.find_element_by_css_selector('.content')
+        # print("Time finding element content: %ss" % (time.time() - t0))
+
+        t0 = time.time()
+        name = tc.find_element_by_css_selector(
+            '.stream-item-header .FullNameGroup .fullname').text
+        # print("Time finding name: %ss" % (time.time() - t0))
+        t0 = time.time()
+        user_name = tc.find_element_by_css_selector(
+            '.stream-item-header .username b').text
+        # print("Time finding user_name: %ss" % (time.time() - t0))
+        t0 = time.time()
         # Con algunos elementos HTML dentro
-        twit = t.find_element_by_css_selector(
-            '.content .js-tweet-text-container').text
-        verified = exists_css_element('.Icon.Icon--verified', t)
+        twit = tc.find_element_by_css_selector(
+            '.js-tweet-text-container').text
+        # print("Time finding twit: %ss" % (time.time() - t0))
+        t0 = time.time()
+        verified = exists_css_element('.Icon.Icon--verified', tc)
+        # print("Time finding verified: %ss" % (time.time() - t0))
 
         if user_name in found:
             found[user_name]['count'] += 1
@@ -186,8 +165,15 @@ for t in tl:
         # print("%s,%s" % (user_name, verified))
 
         delete_element(t)
-    except:
+    except Exception as e:
+        # print(e)
         pass
+
+    t0 = time.time()
+
+tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
+for t in tl:
+    analyze_twit(t)
 
 print("account,verified,likes")
 with open('%s.csv' % username, 'w+') as f:
