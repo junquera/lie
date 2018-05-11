@@ -105,6 +105,8 @@ add_css_rule("#timeline .stream ol > li { display: none; }")
 
 all_likes = body.find_element_by_css_selector('.ProfileNav-list > li.ProfileNav-item.ProfileNav-item--favorites').text
 all_likes = int(re.sub(r'[^0-9]', '', all_likes))
+
+logging.warning("Extraction progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
 while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT:
     driver.execute_script(
         'arguments[0].scrollIntoView();', body.find_element_by_class_name('stream-footer'))
@@ -123,7 +125,7 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
         # TODO Medir tiempos y ver cuándo es mejor lanzar delete_element
 
         total = len(tl)
-        logging.warning("Progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
+        logging.warning("Extraction progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
 
 
         for _ in range(50):
@@ -134,8 +136,8 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
 
 def analyze_twit(t):
     # print("Time with the element: %ss" % (time.time() - t0))
-
     try:
+        driver.execute_script("arguments[0].setAttribute('style','display: inherit!important;');",t)
         t0 = time.time()
         # En principio esta es la parte más lenta
         tc = t.find_element_by_css_selector('.content')
@@ -144,6 +146,7 @@ def analyze_twit(t):
         t0 = time.time()
         name = tc.find_element_by_css_selector(
             '.stream-item-header .FullNameGroup .fullname').text
+        # print(name)
         # print("Time finding name: %ss" % (time.time() - t0))
         t0 = time.time()
         user_name = tc.find_element_by_css_selector(
@@ -172,13 +175,17 @@ def analyze_twit(t):
     t0 = time.time()
 
 tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
-for t in tl:
-    analyze_twit(t)
+'''
+Hasta aquí llegamos rápido, podríamos probar a sacar todo el html y analizar con bs4
+'''
+for n in range(len(tl)):
+    logging.warning("Analysis progress: %.02f%% (%d/%d)" % (100 * float(n/float(all_likes)), n, all_likes))
+    analyze_twit(tl[n])
 
-print("account,verified,likes")
+# print("account,verified,likes")
 with open('%s.csv' % username, 'w+') as f:
     for x in found:
         s = "%s,%s,%d" % (x, '(v)' if found[x]['verified'] else '', found[x]['count'])
-        print(s)
+        # print(s)
         f.write("%s\n" % s)
         f.flush()
