@@ -1,11 +1,15 @@
 from selenium import webdriver
 from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
 
 from getpass import getpass
 
 import time
 
-driver = webdriver.Chrome()
+chrome_options = Options()
+chrome_options.add_argument("--headless")
+
+driver = webdriver.Chrome(chrome_options=chrome_options)
 driver.maximize_window()
 driver.get('https://twitter.com')
 
@@ -15,7 +19,7 @@ logging.basicConfig(format='[*] %(asctime)s - %(message)s', datefmt='%m/%d/%Y %I
 # https://twitter.com/{{user}}/likes
 # TODO Contabilizar e ir sacando porcentajes
 # TODO Configurar otro tipo de límites (por ejemplo antigüedad)
-LIMIT = 3000
+LIMIT = 500 # 3000
 
 def add_css_rule(rule):
 
@@ -62,7 +66,7 @@ login_twitter(username, password)
 
 # username = input("Victim: ")
 
-username = 'el_pais'
+username = 'sanchezcastejon'
 
 driver.get('https://twitter.com/' + username + '/likes')
 html = driver.find_element_by_tag_name('html')
@@ -127,6 +131,11 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
         total = len(tl)
         logging.warning("Extraction progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
 
+        for _ in range(50):
+            body.send_keys(Keys.UP)
+
+        for _ in range(50):
+            body.send_keys(Keys.DOWN)
 
         for _ in range(50):
             body.send_keys(Keys.UP)
@@ -179,6 +188,7 @@ tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
 Hasta aquí llegamos rápido, podríamos probar a sacar todo el html y analizar con bs4
 '''
 for n in range(len(tl)):
+    # print(tl[n].get_attribute('innerHTML'))
     logging.warning("Analysis progress: %.02f%% (%d/%d)" % (100 * float(n/float(all_likes)), n, all_likes))
     analyze_twit(tl[n])
 
