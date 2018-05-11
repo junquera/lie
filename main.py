@@ -19,7 +19,7 @@ logging.basicConfig(format='[*] %(asctime)s - %(message)s', datefmt='%m/%d/%Y %I
 # https://twitter.com/{{user}}/likes
 # TODO Contabilizar e ir sacando porcentajes
 # TODO Configurar otro tipo de límites (por ejemplo antigüedad)
-LIMIT = 500 # 3000
+LIMIT = 500
 
 def add_css_rule(rule):
 
@@ -66,7 +66,7 @@ login_twitter(username, password)
 
 # username = input("Victim: ")
 
-username = 'sanchezcastejon'
+username = 'jordievole'
 
 driver.get('https://twitter.com/' + username + '/likes')
 html = driver.find_element_by_tag_name('html')
@@ -97,6 +97,41 @@ def delete_element(element):
     """, element)
     # print("Deleted in %sseconds" % (time.time() - t0))
 
+from bs4 import BeautifulSoup
+def analyze_twit_html(t):
+    # print("Time with the element: %ss" % (time.time() - t0))
+    try:
+        soup = BeautifulSoup(t, 'html.parser')
+
+        name = soup.select(
+            '.content .stream-item-header .FullNameGroup .fullname')[0].text
+        # print(name)
+        # print("Time finding name: %ss" % (time.time() - t0))
+        user_name = soup.select(
+            '.content .stream-item-header .username b')[0].text
+        # print("Time finding user_name: %ss" % (time.time() - t0))
+
+        # Con algunos elementos HTML dentro
+        twit = soup.select(
+        '.content .js-tweet-text-container')[0].text
+        # print("Time finding twit: %ss" % (time.time() - t0))
+
+        verified = len(soup.select('.Icon.Icon--verified')) > 0
+        # print("Time finding verified: %ss" % (time.time() - t0))
+        # print(verified)
+
+        if user_name in found:
+            found[user_name]['count'] += 1
+        else:
+            found[user_name] = {'count': 1, 'verified': verified}
+        # print("%s,%s" % (user_name, verified))
+
+    except Exception as e:
+        # print(e)
+        pass
+
+    t0 = time.time()
+
 import re
 
 # TODO Controlar "inianición"
@@ -105,7 +140,8 @@ c = 0
 total = 0
 # TODO Add signal to stop
 
-add_css_rule("#timeline .stream ol > li { display: none; }")
+# MAKE ALL TWITS INVISIBLE
+# add_css_rule("#timeline .stream ol > li { display: none; }")
 
 all_likes = body.find_element_by_css_selector('.ProfileNav-list > li.ProfileNav-item.ProfileNav-item--favorites').text
 all_likes = int(re.sub(r'[^0-9]', '', all_likes))
@@ -125,12 +161,6 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
     if c % 5 == 0:
         # time.sleep(1)
 
-        tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
-        # TODO Medir tiempos y ver cuándo es mejor lanzar delete_element
-
-        total = len(tl)
-        logging.warning("Extraction progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
-
         for _ in range(50):
             body.send_keys(Keys.UP)
 
@@ -140,6 +170,23 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
         for _ in range(50):
             body.send_keys(Keys.UP)
 
+        tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
+        # TODO Medir tiempos y ver cuándo es mejor lanzar delete_element
+
+        total += len(tl)
+        logging.warning("Extraction progress: %.02f%% (%d/%d)" % (100 * float(float(total)/float(all_likes)), total, all_likes))
+
+        '''
+        Hasta aquí llegamos rápido, podríamos probar a sacar todo el html y analizar con bs4
+        '''
+        for n in range(len(tl)):
+            try:
+                twit_html = tl[n].get_attribute('innerHTML')
+                # logging.warning("Analysis progress: %.02f%% (%d/%d)" % (100 * float(n/float(all_likes)), n, all_likes))
+                analyze_twit_html(twit_html)
+                delete_element(tl[n])
+            except:
+                pass
         # time.sleep(1)
 
 
@@ -183,19 +230,12 @@ def analyze_twit(t):
 
     t0 = time.time()
 
-tl = body.find_elements_by_css_selector('#timeline .stream ol > li')
-'''
-Hasta aquí llegamos rápido, podríamos probar a sacar todo el html y analizar con bs4
-'''
-for n in range(len(tl)):
-    # print(tl[n].get_attribute('innerHTML'))
-    logging.warning("Analysis progress: %.02f%% (%d/%d)" % (100 * float(n/float(all_likes)), n, all_likes))
-    analyze_twit(tl[n])
+
 
 # print("account,verified,likes")
 with open('%s.csv' % username, 'w+') as f:
     for x in found:
-        s = "%s,%s,%d" % (x, '(v)' if found[x]['verified'] else '', found[x]['count'])
+        s = "%s,%s,%d" % (x, found[x]['verified'], found[x]['count'])
         # print(s)
         f.write("%s\n" % s)
         f.flush()
