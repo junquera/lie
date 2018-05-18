@@ -19,7 +19,7 @@ logging.basicConfig(format='[*] %(asctime)s - %(message)s', datefmt='%m/%d/%Y %I
 # https://twitter.com/{{user}}/likes
 # TODO Contabilizar e ir sacando porcentajes
 # TODO Configurar otro tipo de límites (por ejemplo antigüedad)
-LIMIT = 500
+LIMIT = 3000
 
 def add_css_rule(rule):
 
@@ -66,7 +66,7 @@ login_twitter(username, password)
 
 # username = input("Victim: ")
 
-username = 'jordievole'
+username = 'cloureiro80'
 
 driver.get('https://twitter.com/' + username + '/likes')
 html = driver.find_element_by_tag_name('html')
@@ -127,8 +127,11 @@ def analyze_twit_html(t):
         # print("%s,%s" % (user_name, verified))
 
     except Exception as e:
-        # print(e)
-        pass
+        try:
+            logging.error(e)
+            logging.error("Error at: %s" % t.text)
+        except:
+            pass
 
     t0 = time.time()
 
@@ -186,7 +189,10 @@ while exists_css_element('.timeline-end.has-more-items', body) and total < LIMIT
                 analyze_twit_html(twit_html)
                 delete_element(tl[n])
             except:
-                pass
+                try:
+                    logging.error("Error at: %s" % tl.text)
+                except:
+                    pass
         # time.sleep(1)
 
 
