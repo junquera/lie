@@ -1,2 +1,3 @@
 geckodriver*
 chromedriver*
+secrets.py
