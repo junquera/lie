@@ -35,6 +35,5 @@ while l and count < 10:
     except:
         pass
 
-print(k)
 for n in k:
     print("{}\t{}".format(k[n], n))
