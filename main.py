@@ -1,4 +1,4 @@
-import twitter
+from twitter import *
 import secrets
 # Library: https://github.com/bear/python-twitter
 # Docs: https://python-twitter.readthedocs.io/en/latest/twitter.html?highlight=favorite
@@ -11,12 +11,10 @@ MAX_ITERATIONS = 30
 
 user = input("Username > ")
 
-api = twitter.Api(consumer_key=CONSUMER_KEY,
-                  consumer_secret=CONSUMER_SECRET,
-                  access_token_key=ACCESS_TOKEN_KEY,
-                  access_token_secret=ACCESS_TOKEN_SECRET)
+t = Twitter(
+    auth=OAuth(ACCESS_TOKEN_KEY, ACCESS_TOKEN_SECRET, CONSUMER_KEY, CONSUMER_SECRET))
 
-l = api.GetFavorites(screen_name=user)
+l = t.favorites.list(screen_name=user)
 
 count = 0
 k = {}
@@ -27,22 +25,24 @@ while l and count < MAX_ITERATIONS:
     try:
         for i in l:
             block_s += 1
-            u = i.user
+            u = i.get('user')
 
-            if u.screen_name in k:
-                k[u.screen_name] += 1
+            if u.get('screen_name') in k:
+                k[u.get('screen_name')] += 1
             else:
-                k[u.screen_name] = 1
+                k[u.get('screen_name')] = 1
 
             # print("{} - {}".format(u.name, u.screen_name))
-    except:
+    except Exception as e:
+        print(e)
         pass
 
     print("[*] Block size: %d" % block_s)
 
     try:
-        l = api.GetFavorites(screen_name=user, max_id=i.id)
-    except:
+        l = t.favorites.list(screen_name=user, max_id=i.get('id'))
+    except Exception as e:
+        print(e)
         pass
 
 
