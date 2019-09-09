@@ -2,3 +2,6 @@ geckodriver*
 chromedriver*
 secrets.py
 test.txt
+venv
+__pycache__
+*.pyc

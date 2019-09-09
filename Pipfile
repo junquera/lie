@@ -10,3 +10,4 @@ python_version = "3"
 
 [packages]
 python-twitter = "*"
+twitter = "*"
